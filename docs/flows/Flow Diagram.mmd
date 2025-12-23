@@ -1,0 +1,93 @@
+flowchart TD
+    Start([User Opens Application]) --> CheckSession{Session<br/>Exists?}
+    
+    %% Authentication Flow
+    CheckSession -->|No| InitWA[Initialize WhatsApp Service]
+    InitWA --> GenerateQR[Generate QR Code]
+    GenerateQR --> DisplayQR[Display QR in UI]
+    DisplayQR --> WaitScan[Wait for User to Scan]
+    WaitScan --> Authenticated{Authenticated?}
+    Authenticated -->|Yes| SaveSession[Save Session to DB]
+    SaveSession --> MainMenu[Show Main Menu]
+    Authenticated -->|No| DisplayQR
+    
+    CheckSession -->|Yes| LoadSession[Load Session from DB]
+    LoadSession --> RestoreSession[Restore WhatsApp Session]
+    RestoreSession --> MainMenu
+    
+    %% Main Menu
+    MainMenu --> LoadConfig[Load Saved Configuration]
+    LoadConfig --> UserAction{User<br/>Action?}
+    
+    %% Send Message Flow
+    UserAction -->|Send Message| InputData[User Enters:<br/>- Phone Number<br/>- Message<br/>- File Optional<br/>- Delay]
+    InputData --> ValidatePhone{Valid Phone<br/>Number?}
+    ValidatePhone -->|No| ShowError1[Show Error Message]
+    ShowError1 --> UserAction
+    
+    ValidatePhone -->|Yes| CheckFile{File<br/>Attached?}
+    CheckFile -->|Yes| ValidateFile{Valid<br/>File?}
+    ValidateFile -->|No| ShowError2[Show Error: Invalid File]
+    ShowError2 --> UserAction
+    ValidateFile -->|Yes| PrepareMedia[Prepare Media for Sending]
+    PrepareMedia --> QueueMessage[Add to Send Queue]
+    
+    CheckFile -->|No| QueueMessage
+    
+    %% Sequential Sending
+    QueueMessage --> CheckQueue{Messages in<br/>Queue?}
+    CheckQueue -->|Yes| CheckPause{Paused or<br/>Stopped?}
+    CheckPause -->|Yes| WaitResume[Wait for Resume]
+    WaitResume --> CheckPause
+    
+    CheckPause -->|No| ApplyDelay[Apply Configured Delay]
+    ApplyDelay --> SendMessage[Send Message via<br/>WhatsApp Service]
+    SendMessage --> SendResult{Send<br/>Successful?}
+    
+    SendResult -->|Yes| SaveHistory[Save to Message History]
+    SaveHistory --> ShowSuccess[Show Success Feedback]
+    ShowSuccess --> RemoveFromQueue[Remove from Queue]
+    RemoveFromQueue --> CheckQueue
+    
+    SendResult -->|No| ShowError3[Show Error Message]
+    ShowError3 --> LogError[Log Error]
+    LogError --> RemoveFromQueue
+    
+    CheckQueue -->|No| UserAction
+    
+    %% Pause/Stop Flow
+    UserAction -->|Pause| SetPauseFlag[Set Pause Flag]
+    SetPauseFlag --> ShowPauseMsg[Show Paused Status]
+    ShowPauseMsg --> UserAction
+    
+    UserAction -->|Stop| SetStopFlag[Set Stop Flag]
+    SetStopFlag --> ClearQueue[Clear Send Queue]
+    ClearQueue --> ShowStopMsg[Show Stopped Status]
+    ShowStopMsg --> UserAction
+    
+    UserAction -->|Resume| ClearPauseFlag[Clear Pause Flag]
+    ClearPauseFlag --> UserAction
+    
+    %% Configuration Flow
+    UserAction -->|Configure Delay| UpdateDelay[Update Delay Setting]
+    UpdateDelay --> SaveConfig[Save Configuration to DB]
+    SaveConfig --> ShowConfigSaved[Show Config Saved]
+    ShowConfigSaved --> UserAction
+    
+    %% Exit Flow
+    UserAction -->|Exit| SaveState[Save Current State]
+    SaveState --> CloseWA[Close WhatsApp Service]
+    CloseWA --> End([Application Closed])
+    
+    %% Styling
+    classDef processStyle fill:#4A90E2,stroke:#2E5C8A,stroke-width:2px,color:#fff
+    classDef decisionStyle fill:#F39C12,stroke:#C87F0A,stroke-width:2px,color:#fff
+    classDef errorStyle fill:#E74C3C,stroke:#C0392B,stroke-width:2px,color:#fff
+    classDef successStyle fill:#27AE60,stroke:#1E8449,stroke-width:2px,color:#fff
+    classDef startEndStyle fill:#8E44AD,stroke:#6C3483,stroke-width:3px,color:#fff
+    
+    class InitWA,GenerateQR,LoadSession,RestoreSession,PrepareMedia,SendMessage,ApplyDelay processStyle
+    class CheckSession,Authenticated,ValidatePhone,CheckFile,ValidateFile,CheckQueue,CheckPause,SendResult decisionStyle
+    class ShowError1,ShowError2,ShowError3,LogError errorStyle
+    class SaveSession,ShowSuccess,SaveHistory,ShowConfigSaved successStyle
+    class Start,End startEndStyle

@@ -1,0 +1,87 @@
+sequenceDiagram
+    actor User
+    participant UI as Renderer/UI
+    participant Main as Main Process
+    participant WS as WhatsApp Service
+    participant DB as Persistence Layer
+
+    %% US-01: QR Authentication
+    Note over User,DB: US-01: QR Authentication
+    User->>UI: Opens application
+    UI->>Main: Request authentication status
+    Main->>DB: Load session data
+    alt Session not found
+        DB-->>Main: No session
+        Main->>WS: Initialize WhatsApp client
+        WS->>WS: Generate QR code
+        WS-->>Main: QR code ready
+        Main-->>UI: Display QR code
+        UI-->>User: Shows QR code
+        User->>User: Scans QR with phone
+        WS->>WS: Authentication successful
+        WS-->>Main: Session authenticated
+        Main->>DB: Save session data
+        DB-->>Main: Session saved
+        Main-->>UI: Authentication successful
+        UI-->>User: Show success message
+    else Session exists
+        DB-->>Main: Return session
+        Main->>WS: Restore session
+        WS-->>Main: Session restored
+        Main-->>UI: Already authenticated
+    end
+
+    %% US-03, US-04, US-05, US-06, US-07: Send Message Flow
+    Note over User,DB: US-03-07: Send Message with File
+    User->>UI: Enters phone number
+    User->>UI: Types message
+    User->>UI: Selects file (optional)
+    User->>UI: Configures delay
+    User->>UI: Clicks Send button
+    
+    UI->>Main: IPC: sendMessage(phone, text, file, delay)
+    
+    Main->>Main: Validate phone number (US-04)
+    alt Invalid phone number
+        Main-->>UI: Error: Invalid phone format
+        UI-->>User: Display error message
+    else Valid phone number
+        Main->>Main: Apply sequential control (US-06)
+        Main->>Main: Apply delay (US-07)
+        
+        alt With file attachment
+            Main->>WS: sendMessageWithMedia(phone, text, file)
+            WS->>WS: Process media
+            WS->>WS: Send via WhatsApp Web
+        else Text only
+            Main->>WS: sendTextMessage(phone, text)
+            WS->>WS: Send via WhatsApp Web
+        end
+        
+        WS-->>Main: Message sent successfully
+        Main->>DB: Save message history
+        DB-->>Main: History saved
+        Main->>DB: Update configuration
+        DB-->>Main: Configuration saved
+        Main-->>UI: Success feedback
+        UI-->>User: Display success message (US-10)
+    end
+
+    %% US-08: Pause/Stop Sending
+    Note over User,DB: US-08: Pause/Stop Control
+    User->>UI: Clicks Pause/Stop button
+    UI->>Main: IPC: pauseSending() or stopSending()
+    Main->>Main: Set pause/stop flag
+    Main->>WS: Cancel pending operations
+    WS-->>Main: Operations cancelled
+    Main-->>UI: Sending paused/stopped
+    UI-->>User: Display status update
+
+    %% US-11: Configuration Persistence
+    Note over User,DB: US-11: Load Configuration on Startup
+    User->>UI: Opens application (subsequent)
+    UI->>Main: Request saved configuration
+    Main->>DB: Load configuration
+    DB-->>Main: Return config (delay, preferences)
+    Main-->>UI: Apply configuration
+    UI-->>User: UI populated with saved settings 
