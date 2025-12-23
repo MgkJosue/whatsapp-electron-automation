@@ -68,18 +68,7 @@ so that I do not need to scan the QR code every time I open it.
 
 ---
 
-### US-03 — Connection Status
-As a user  
-I want to see the WhatsApp connection status  
-so that I know whether I can send messages.
-
-**Acceptance Criteria**
-- A visual indicator shows connected or disconnected status.
-- The status updates automatically.
-
----
-
-### US-04 — Send Text Message
+### US-03 — Send Text Message
 As a user  
 I want to send a text message to a WhatsApp number  
 so that I can communicate directly from the application.
@@ -92,7 +81,7 @@ so that I can communicate directly from the application.
 
 ---
 
-### US-05 — Phone Number Validation
+### US-04 — Phone Number Validation
 As a user  
 I want the system to validate the phone number before sending the message  
 so that I can avoid errors.
@@ -104,7 +93,7 @@ so that I can avoid errors.
 
 ---
 
-### US-06 — Attach File
+### US-05 — Attach File
 As a user  
 I want to attach a file to my message  
 so that I can send images or documents.
@@ -116,7 +105,7 @@ so that I can send images or documents.
 
 ---
 
-### US-07 — Sequential Sending
+### US-06 — Sequential Sending
 As a user  
 I want messages to be sent sequentially  
 so that I can avoid WhatsApp restrictions.
@@ -127,7 +116,7 @@ so that I can avoid WhatsApp restrictions.
 
 ---
 
-### US-08 — Delay Configuration
+### US-07 — Delay Configuration
 As a user  
 I want to configure a delay between messages  
 so that I can control the sending speed.
@@ -138,7 +127,7 @@ so that I can control the sending speed.
 
 ---
 
-### US-09 — Pause or Stop Sending
+### US-08 — Pause or Stop Sending
 As a user  
 I want to pause or stop the sending process  
 so that I have full control over the system.
@@ -150,7 +139,7 @@ so that I have full control over the system.
 
 ---
 
-### US-10 — No Console Usage
+### US-09 — No Console Usage
 As a non-technical user  
 I want to use all features through the graphical interface  
 so that I do not need to use the console.
@@ -161,7 +150,7 @@ so that I do not need to use the console.
 
 ---
 
-### US-11 — Visual Feedback
+### US-10 — Visual Feedback
 As a user  
 I want to receive visual feedback from the system  
 so that I understand what is happening.
@@ -173,7 +162,7 @@ so that I understand what is happening.
 
 ---
 
-### US-12 — Configuration Persistence
+### US-11 — Configuration Persistence
 As a user  
 I want the application to save my configuration  
 so that I do not need to configure it every time I open it.
