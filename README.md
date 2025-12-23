@@ -240,7 +240,7 @@ Key features:
 
 1. **Clone the repository**
 ```bash
-git clone https://github.com/yourusername/whatsapp-electron-automation.git
+git clone https://github.com/MgkJosue/whatsapp-electron-automation.git
 cd whatsapp-electron-automation
 ```
 
@@ -329,10 +329,9 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## 👨‍💻 Author
 
-**Your Name**
-- Portfolio: [yourportfolio.com](https://yourportfolio.com)
-- LinkedIn: [linkedin.com/in/yourprofile](https://linkedin.com/in/yourprofile)
-- GitHub: [@yourusername](https://github.com/yourusername)
+**Josue Alvarez**
+- LinkedIn: [linkedin.com/in/josuealvarez](https://www.linkedin.com/in/josue-alvarez-58271b196/)
+- GitHub: [@MgkJosue](https://github.com/mgkjosue)
 
 ---
 
