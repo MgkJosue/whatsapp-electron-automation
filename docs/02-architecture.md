@@ -93,6 +93,7 @@ Persistence Layer
 
 ## Project Folder Structure
 
+```
 src/
 ├─ main/
 │ ├─ main.js # Main Process entry point
@@ -108,7 +109,7 @@ src/
 │ └─ styles.css # UI styling
 └─ shared/
 └─ constants.js # Global constants
-
+```
 
 - Each folder reflects a **layer in the architecture**  
 - Facilitates maintainability, testing, and scalability  
