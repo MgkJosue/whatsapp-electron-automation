@@ -16,6 +16,7 @@ db.json
 # WhatsApp session data
 .wwebjs_auth/
 .wwebjs_cache/
+tokens/
 
 # Logs
 logs/

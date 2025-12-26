@@ -57,6 +57,17 @@ CREATE TABLE "messages" (
   "sent_at" timestamp
 );
 
+CREATE TABLE "message_templates" (
+  "id" varchar(36) PRIMARY KEY,
+  "user_id" varchar(36) NOT NULL,
+  "name" varchar(255) NOT NULL,
+  "content" text NOT NULL,
+  "category" varchar(100),
+  "media_path" varchar(500),
+  "created_at" timestamp NOT NULL DEFAULT (now()),
+  "updated_at" timestamp NOT NULL DEFAULT (now())
+);
+
 CREATE UNIQUE INDEX "idx_sessions_user_id" ON "sessions" ("user_id");
 
 CREATE INDEX "idx_sessions_authenticated" ON "sessions" ("is_authenticated");
@@ -83,6 +94,10 @@ CREATE INDEX "idx_messages_created" ON "messages" ("created_at");
 
 CREATE INDEX "idx_messages_user_status" ON "messages" ("user_id", "status");
 
+CREATE INDEX "idx_templates_user_id" ON "message_templates" ("user_id");
+
+CREATE INDEX "idx_templates_category" ON "message_templates" ("category");
+
 COMMENT ON TABLE "users" IS 'Single user - the person using the desktop application';
 
 COMMENT ON TABLE "sessions" IS 'WhatsApp Web session - persists between app restarts';
@@ -105,6 +120,14 @@ COMMENT ON COLUMN "messages"."file_path" IS 'Optional: path to attached file';
 
 COMMENT ON COLUMN "messages"."file_name" IS 'Optional: name of attached file';
 
+COMMENT ON TABLE "message_templates" IS 'Reusable message templates with optional media attachments and variable placeholders';
+
+COMMENT ON COLUMN "message_templates"."content" IS 'Template message content - supports variables like {nombre} and {telefono}';
+
+COMMENT ON COLUMN "message_templates"."category" IS 'Optional: category for organizing templates (e.g., Sales, Support, Marketing)';
+
+COMMENT ON COLUMN "message_templates"."media_path" IS 'Optional: path to media file attached to template';
+
 ALTER TABLE "users" ADD FOREIGN KEY ("id") REFERENCES "sessions" ("user_id") ON DELETE CASCADE;
 
 ALTER TABLE "users" ADD FOREIGN KEY ("id") REFERENCES "configurations" ("user_id") ON DELETE CASCADE;
@@ -114,3 +137,5 @@ ALTER TABLE "contacts" ADD FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON 
 ALTER TABLE "messages" ADD FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON DELETE CASCADE;
 
 ALTER TABLE "messages" ADD FOREIGN KEY ("contact_id") REFERENCES "contacts" ("id") ON DELETE SET NULL;
+
+ALTER TABLE "message_templates" ADD FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON DELETE CASCADE;

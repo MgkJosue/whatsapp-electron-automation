@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WhatsApp Desktop Automation</title>
+    <link rel="stylesheet" href="styles/output.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="bg-gray-50 dark:bg-dark-bg text-gray-900 dark:text-gray-100">
+    <div id="app" class="min-h-screen">
+        <!-- Header -->
+        <header class="bg-white dark:bg-dark-card border-b border-gray-200 dark:border-dark-border sticky top-0 z-50 shadow-sm">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between items-center h-16">
+                    <div class="flex items-center space-x-4">
+                        <h1 class="text-xl font-bold text-primary-600 dark:text-primary-400" data-i18n="appTitle">WhatsApp Automation Tool</h1>
+                        <span id="status-text" class="text-sm text-gray-500 dark:text-gray-400" data-i18n="statusInitializing">Initializing...</span>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <!-- Language Toggle -->
+                        <button id="language-toggle" onclick="toggleLanguage()" class="px-3 py-2 rounded-lg bg-gray-100 dark:bg-dark-bg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-sm font-medium">
+                            <span id="language-text">EN</span>
+                        </button>
+                        <!-- Theme Toggle -->
+                        <button id="theme-toggle" onclick="themeManager.toggleTheme()" class="px-3 py-2 rounded-lg bg-gray-100 dark:bg-dark-bg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-xl">
+                            <span id="theme-icon">🌙</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+        
+        <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <!-- Tab Navigation -->
+            <div class="bg-white dark:bg-dark-card rounded-lg shadow-sm border border-gray-200 dark:border-dark-border mb-6 p-1">
+                <nav class="flex space-x-1" role="tablist">
+                    <button class="tab-btn flex-1 px-4 py-3 text-sm font-medium rounded-md transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-700" data-tab="messaging">
+                        <span class="text-lg mr-2">📱</span>
+                        <span data-i18n="navMessaging">Messaging</span>
+                    </button>
+                    <button class="tab-btn flex-1 px-4 py-3 text-sm font-medium rounded-md transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-700" data-tab="templates">
+                        <span class="text-lg mr-2">📝</span>
+                        <span data-i18n="navTemplates">Templates</span>
+                    </button>
+                    <button class="tab-btn flex-1 px-4 py-3 text-sm font-medium rounded-md transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-700" data-tab="contacts">
+                        <span class="text-lg mr-2">📇</span>
+                        <span data-i18n="navContacts">Contacts</span>
+                    </button>
+                    <button class="tab-btn flex-1 px-4 py-3 text-sm font-medium rounded-md transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-700" data-tab="reports">
+                        <span class="text-lg mr-2">📊</span>
+                        <span data-i18n="navReports">Reports</span>
+                    </button>
+                    <button class="tab-btn flex-1 px-4 py-3 text-sm font-medium rounded-md transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-700" data-tab="settings">
+                        <span class="text-lg mr-2">⚙️</span>
+                        <span data-i18n="navSettings">Settings</span>
+                    </button>
+                </nav>
+            </div>
+
+            <div class="space-y-6">
+                <!-- Authentication Section -->
+                <div id="auth-section" class="bg-white dark:bg-dark-card rounded-xl shadow-sm border border-gray-200 dark:border-dark-border p-6">
+                    <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center">
+                        <span class="text-3xl mr-3">🔐</span>
+                        <span data-i18n="authTitle">WhatsApp Authentication</span>
+                    </h2>
+                    <div id="qr-container" style="display: none;">
+                        <p class="text-gray-700 dark:text-gray-300 mb-4" data-i18n="authScanQR">Scan this QR code with your WhatsApp mobile app:</p>
+                        <div id="qr-code" class="flex justify-center my-6"></div>
+                        <p class="text-sm text-gray-500 dark:text-gray-400 text-center">Open WhatsApp > Settings > Linked Devices > Link a Device</p>
+                    </div>
+                    <div id="loading-container" class="text-center py-8">
+                        <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+                        <p class="mt-4 text-gray-600 dark:text-gray-400">Connecting to WhatsApp...</p>
+                    </div>
+                    <div id="ready-container" class="text-center py-8" style="display: none;">
+                        <div class="text-6xl text-green-500 mb-4">✓</div>
+                        <h3 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Connected Successfully!</h3>
+                        <p id="user-info" class="text-gray-600 dark:text-gray-400 mb-4"></p>
+                        <button id="btn-logout" class="btn btn-secondary" data-i18n="authLogout">Logout</button>
+                    </div>
+                    <div id="error-container" class="text-center py-8" style="display: none;">
+                        <div class="text-6xl text-red-500 mb-4">✗</div>
+                        <h3 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Authentication Failed</h3>
+                        <p id="error-message" class="text-gray-600 dark:text-gray-400 mb-4"></p>
+                        <button id="btn-retry" class="btn btn-primary">Retry</button>
+                    </div>
+                </div>
+
+                <!-- TAB CONTENT: Messaging -->
+                <div id="tab-messaging" class="tab-content active">
+                    <div id="message-section" class="bg-white dark:bg-dark-card rounded-xl shadow-sm border border-gray-200 dark:border-dark-border p-6" style="display: none;">
+                        <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6 flex items-center">
+                            <span class="text-3xl mr-3">📱</span>
+                            <span data-i18n="msgTitle">Send Messages to Contacts</span>
+                        </h2>
+                        
+                        <!-- Queue Status -->
+                        <div id="queue-status" class="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4 mb-6 border border-gray-200 dark:border-gray-700" style="display: none;">
+                            <div class="flex items-center justify-between flex-wrap gap-4">
+                                <div class="flex items-center space-x-4">
+                                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300" data-i18n="msgQueueStatus">Queue Status:</span>
+                                    <span id="queue-state" class="badge badge-info">Idle</span>
+                                </div>
+                                <div class="text-sm text-gray-600 dark:text-gray-400">
+                                    <span data-i18n="msgInQueue">Messages in queue:</span> <strong id="queue-size" class="text-primary-600 dark:text-primary-400">0</strong>
+                                    <div id="current-contact-info" class="mt-2" style="display: none;">
+                                        <span class="text-gray-500 dark:text-gray-400">Sending to: <strong id="current-contact-name" class="text-gray-900 dark:text-gray-100"></strong></span>
+                                    </div>
+                                </div>
+                                <div class="flex space-x-2">
+                                    <button id="btn-pause-queue" class="btn btn-warning text-sm" disabled data-i18n="msgPauseQueue">⏸ Pause</button>
+                                    <button id="btn-resume-queue" class="btn btn-success text-sm" disabled style="display: none;" data-i18n="msgResumeQueue">▶ Resume</button>
+                                    <button id="btn-stop-queue" class="btn btn-danger text-sm" disabled data-i18n="msgStopQueue">⏹ Stop</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Message Composer -->
+                        <div class="space-y-6">
+                            <div>
+                                <label for="template-selector" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" data-i18n="msgUseTemplate">Use Template (Optional)</label>
+                                <select id="template-selector" class="select">
+                                    <option value="" data-i18n="msgSelectTemplate">-- Select a template --</option>
+                                </select>
+                                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">💡 <span data-i18n="tmpVariablesHint">Select a template to auto-fill the message</span></p>
+                            </div>
+                            
+                            <div>
+                                <label for="message-text" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" data-i18n="msgMessageLabel">Message Content</label>
+                                <textarea id="message-text" rows="5" class="textarea" data-i18n-placeholder="msgMessagePlaceholder" placeholder="Type your message here..." required></textarea>
+                            </div>
+                            
+                            <div>
+                                <label for="media-file" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" data-i18n="msgAttachFile">Attach File (Optional)</label>
+                                <input type="file" id="media-file" class="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100 dark:file:bg-primary-900/30 dark:file:text-primary-300 dark:hover:file:bg-primary-900/50">
+                                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">📎 Images, videos, documents, audio supported</p>
+                            </div>
+                            
+                            <div class="flex space-x-3 pt-4">
+                                <button id="btn-send-all-contacts" class="btn btn-primary flex-1">
+                                    <span class="mr-2">📤</span>
+                                    <span data-i18n="msgSendToAll">Send to All Contacts</span>
+                                </button>
+                                <button id="btn-send-selected-contacts" class="btn btn-success flex-1" style="display: none;">
+                                    <span class="mr-2">📤</span>
+                                    <span data-i18n="msgSendToSelected">Send to Selected</span>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div id="messaging-status" class="mt-4 p-4 rounded-lg" style="display: none;"></div>
+                    </div>
+                </div>
+
+                <!-- TAB CONTENT: Templates -->
+                <div id="tab-templates" class="tab-content" style="display: none;">
+                    <div class="bg-white dark:bg-dark-card rounded-xl shadow-sm border border-gray-200 dark:border-dark-border p-6">
+                        <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6 flex items-center">
+                            <span class="text-3xl mr-3">📝</span>
+                            <span data-i18n="tmpTitle">Message Templates</span>
+                        </h2>
+                        
+                        <div class="flex items-center gap-4 mb-6">
+                            <button id="btn-add-template" class="btn btn-primary">
+                                <span class="mr-2">+</span>
+                                <span data-i18n="tmpNewTemplate">New Template</span>
+                            </button>
+                            <input type="text" id="template-search" class="input flex-1 max-w-md" data-i18n-placeholder="tmpSearch" placeholder="Search templates...">
+                        </div>
+
+                        <div id="templates-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <p class="col-span-full text-center text-gray-500 dark:text-gray-400 py-12" data-i18n="tmpEmpty">No templates yet. Create your first template!</p>
+                        </div>
+                        
+                        <div id="templates-status" class="mt-4 p-4 rounded-lg" style="display: none;"></div>
+                    </div>
+                </div>
+
+                <!-- TAB CONTENT: Contacts -->
+                <div id="tab-contacts" class="tab-content" style="display: none;">
+                    <div class="bg-white dark:bg-dark-card rounded-xl shadow-sm border border-gray-200 dark:border-dark-border p-6">
+                        <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6 flex items-center">
+                            <span class="text-3xl mr-3">📇</span>
+                            <span data-i18n="cntTitle">Contact Management</span>
+                        </h2>
+                        
+                        <div class="flex flex-wrap items-center gap-3 mb-6">
+                            <button id="btn-add-contact" class="btn btn-primary">
+                                <span class="mr-2">+</span>
+                                <span data-i18n="cntAddContact">Add Contact</span>
+                            </button>
+                            <button id="btn-import-contacts" class="btn btn-secondary">
+                                <span class="mr-2">📥</span>
+                                <span data-i18n="cntImportCSV">Import CSV</span>
+                            </button>
+                            <button id="btn-export-contacts" class="btn btn-secondary">
+                                <span class="mr-2">📤</span>
+                                <span data-i18n="cntExportCSV">Export CSV</span>
+                            </button>
+                            <button id="btn-delete-selected" class="btn btn-warning" style="display: none;">
+                                <span class="mr-2">🗑️</span>
+                                <span data-i18n="cntDeleteSelected">Delete Selected</span>
+                            </button>
+                            <button id="btn-delete-all" class="btn btn-danger">
+                                <span class="mr-2">🗑️</span>
+                                <span data-i18n="cntDeleteAll">Delete All</span>
+                            </button>
+                        </div>
+
+                        <div class="flex items-center gap-4 mb-6">
+                            <input type="text" id="contact-search" class="input flex-1" data-i18n-placeholder="cntSearch" placeholder="Search contacts...">
+                            <label class="flex items-center space-x-2 cursor-pointer text-sm text-gray-700 dark:text-gray-300">
+                                <input type="checkbox" id="select-all-contacts" class="rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500">
+                                <span data-i18n="cntSelectAll">Select All</span>
+                            </label>
+                        </div>
+
+                        <div id="contacts-list" class="space-y-3">
+                            <p class="text-center text-gray-500 dark:text-gray-400 py-12" data-i18n="cntEmpty">No contacts yet. Add your first contact!</p>
+                        </div>
+                        
+                        <div id="contacts-status" class="mt-4 p-4 rounded-lg" style="display: none;"></div>
+                    </div>
+                </div>
+
+                <!-- TAB CONTENT: Reports -->
+                <div id="tab-reports" class="tab-content" style="display: none;">
+                    <div class="bg-white dark:bg-dark-card rounded-xl shadow-sm border border-gray-200 dark:border-dark-border p-6">
+                        <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6 flex items-center">
+                            <span class="text-3xl mr-3">📊</span>
+                            <span data-i18n="rptTitle">Reports & Statistics</span>
+                        </h2>
+                        
+                        <!-- Statistics Cards -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                            <div class="stat-card stat-total">
+                                <div class="stat-icon">📨</div>
+                                <div class="stat-info">
+                                    <h3 id="stat-total">0</h3>
+                                    <p>Total Messages</p>
+                                </div>
+                            </div>
+                            <div class="stat-card stat-sent">
+                                <div class="stat-icon">✅</div>
+                                <div class="stat-info">
+                                    <h3 id="stat-sent">0</h3>
+                                    <p>Sent Successfully</p>
+                                </div>
+                            </div>
+                            <div class="stat-card stat-failed">
+                                <div class="stat-icon">❌</div>
+                                <div class="stat-info">
+                                    <h3 id="stat-failed">0</h3>
+                                    <p>Failed</p>
+                                </div>
+                            </div>
+                            <div class="stat-card stat-rate">
+                                <div class="stat-icon">📈</div>
+                                <div class="stat-info">
+                                    <h3 id="stat-rate">0%</h3>
+                                    <p>Success Rate</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Filters -->
+                        <div class="report-filters">
+                            <h3>Filter Messages</h3>
+                            <div class="filter-row">
+                                <select id="filter-status">
+                                    <option value="">All Status</option>
+                                    <option value="SENT">Sent</option>
+                                    <option value="FAILED">Failed</option>
+                                    <option value="PENDING">Pending</option>
+                                    <option value="SENDING">Sending</option>
+                                </select>
+                                <input type="text" id="filter-search" placeholder="Search by phone or message...">
+                                <input type="date" id="filter-start-date">
+                                <input type="date" id="filter-end-date">
+                                <button id="btn-apply-filters" class="btn btn-primary">Apply Filters</button>
+                                <button id="btn-clear-filters" class="btn btn-secondary">Clear</button>
+                            </div>
+                        </div>
+
+                        <!-- Export Buttons -->
+                        <div class="export-actions">
+                            <button id="btn-export-csv" class="btn btn-success">📥 Export CSV</button>
+                            <button id="btn-export-json" class="btn btn-success">📥 Export JSON</button>
+                            <button id="btn-refresh-reports" class="btn btn-primary">🔄 Refresh</button>
+                        </div>
+
+                        <!-- Message History Table -->
+                        <div class="message-history">
+                            <h3>Message History</h3>
+                            <div id="messages-table-container">
+                                <table id="messages-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Contact</th>
+                                            <th>Phone</th>
+                                            <th>Message</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="messages-table-body">
+                                        <tr>
+                                            <td colspan="5" class="empty-state">No messages yet. Start sending messages to see history!</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <!-- Pagination Controls -->
+                            <div class="pagination-controls" id="pagination-controls" style="display: none;">
+                                <div class="pagination-info">
+                                    <span id="pagination-info-text">Showing 0-0 of 0 messages</span>
+                                </div>
+                                <div class="pagination-buttons">
+                                    <button id="btn-first-page" class="btn btn-small">« First</button>
+                                    <button id="btn-prev-page" class="btn btn-small">‹ Previous</button>
+                                    <span id="pagination-pages"></span>
+                                    <button id="btn-next-page" class="btn btn-small">Next ›</button>
+                                    <button id="btn-last-page" class="btn btn-small">Last »</button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div id="reports-status" class="status-notification" style="display: none;"></div>
+                    </div>
+                </div>
+
+                <!-- TAB CONTENT: Settings -->
+                <div id="tab-settings" class="tab-content" style="display: none;">
+                    <div class="bg-white dark:bg-dark-card rounded-xl shadow-sm border border-gray-200 dark:border-dark-border p-6">
+                        <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6 flex items-center">
+                            <span class="text-3xl mr-3">⚙️</span>
+                            <span data-i18n="setTitle">Settings</span>
+                        </h2>
+                        
+                        <div class="space-y-8">
+                            <div>
+                                <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4" data-i18n="setQueueConfig">Message Queue Configuration</h3>
+                                <div class="flex items-center gap-4">
+                                    <label for="delay-seconds" class="text-sm font-medium text-gray-700 dark:text-gray-300" data-i18n="setDelay">Delay between messages (seconds):</label>
+                                    <input type="number" id="delay-seconds" min="1" max="60" value="5" class="input w-24">
+                                    <button id="btn-save-config" class="btn btn-primary" data-i18n="setSave">Save</button>
+                                </div>
+                                <p class="mt-2 text-sm text-gray-500 dark:text-gray-400" data-i18n="setDelayHint">This delay applies between each message when sending to multiple contacts</p>
+                            </div>
+
+                            <div>
+                                <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4" data-i18n="setDataManagement">Data Management</h3>
+                                
+                                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                                    <div class="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                                        <p class="text-sm text-gray-600 dark:text-gray-400 mb-1" data-i18n="setDatabaseSize">Database Size:</p>
+                                        <p id="db-size" class="text-lg font-bold text-primary-600 dark:text-primary-400">Calculating...</p>
+                                    </div>
+                                    <div class="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                                        <p class="text-sm text-gray-600 dark:text-gray-400 mb-1" data-i18n="setContacts">Contacts:</p>
+                                        <p id="data-contacts-count" class="text-lg font-bold text-primary-600 dark:text-primary-400">0</p>
+                                    </div>
+                                    <div class="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                                        <p class="text-sm text-gray-600 dark:text-gray-400 mb-1" data-i18n="setMessages">Messages:</p>
+                                        <p id="data-messages-count" class="text-lg font-bold text-primary-600 dark:text-primary-400">0</p>
+                                    </div>
+                                    <div class="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                                        <p class="text-sm text-gray-600 dark:text-gray-400 mb-1" data-i18n="setTemplates">Templates:</p>
+                                        <p id="data-templates-count" class="text-lg font-bold text-primary-600 dark:text-primary-400">0</p>
+                                    </div>
+                                </div>
+
+                                <div class="flex gap-3 mb-6">
+                                    <button id="btn-optimize-db" class="btn btn-secondary">
+                                        <span class="mr-2">🔧</span>
+                                        <span data-i18n="setOptimizeDB">Optimize Database</span>
+                                    </button>
+                                    <button id="btn-delete-all-data" class="btn btn-danger">
+                                        <span class="mr-2">🗑️</span>
+                                        <span data-i18n="setDeleteAllData">Delete All Data</span>
+                                    </button>
+                                </div>
+                                
+                                <div class="bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-400 dark:border-yellow-600 p-4 rounded">
+                                    <p class="font-semibold text-yellow-800 dark:text-yellow-300 mb-2">
+                                        <span class="mr-2">⚠️</span>
+                                        <span data-i18n="setWarning">Warning:</span>
+                                    </p>
+                                    <p class="text-sm text-yellow-700 dark:text-yellow-400 mb-2" data-i18n="setWarningText">Deleting all data will permanently remove:</p>
+                                    <ul class="list-disc list-inside text-sm text-yellow-700 dark:text-yellow-400 space-y-1">
+                                        <li data-i18n="setWarningContacts">All contacts</li>
+                                        <li data-i18n="setWarningMessages">All message history</li>
+                                        <li data-i18n="setWarningTemplates">All templates</li>
+                                        <li data-i18n="setWarningSession">WhatsApp session (will need to re-authenticate)</li>
+                                    </ul>
+                                    <p class="text-sm font-semibold text-yellow-800 dark:text-yellow-300 mt-2" data-i18n="setWarningUndo">This action cannot be undone.</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div id="settings-status" class="mt-4 p-4 rounded-lg" style="display: none;"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Add/Edit Contact Modal -->
+        <div id="contact-modal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="modal-title">Add Contact</h3>
+                    <button class="modal-close" id="close-modal">&times;</button>
+                </div>
+                <form id="contact-form">
+                    <div class="form-group">
+                        <label for="contact-name">Name *</label>
+                        <input type="text" id="contact-name" required placeholder="John Doe">
+                    </div>
+                    <div class="form-group">
+                        <label for="contact-phone">Phone Number *</label>
+                        <input type="tel" id="contact-phone" required placeholder="+1234567890">
+                        <small class="hint">Use international format: +[country code][number]</small>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn-secondary" id="cancel-contact">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save Contact</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Add/Edit Template Modal -->
+        <div id="template-modal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="template-modal-title">New Template</h3>
+                    <button class="modal-close" id="close-template-modal">&times;</button>
+                </div>
+                <form id="template-form">
+                    <div class="form-group">
+                        <label for="template-name">Template Name *</label>
+                        <input type="text" id="template-name" required placeholder="e.g., Welcome Message">
+                    </div>
+                    <div class="form-group">
+                        <label for="template-category">Category (Optional)</label>
+                        <input type="text" id="template-category" placeholder="e.g., Sales, Support, Marketing">
+                    </div>
+                    <div class="form-group">
+                        <label for="template-content">Message Content *</label>
+                        <textarea id="template-content" rows="8" required placeholder="Type your template message here...
+
+You can use variables:
+{nombre} - Contact name
+{telefono} - Contact phone number"></textarea>
+                        <small class="hint">💡 Use {nombre} and {telefono} as placeholders that will be replaced automatically</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="template-media">Attach File (Optional)</label>
+                        <input type="file" id="template-media">
+                        <small class="hint">📎 Images, videos, documents, audio supported</small>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn-secondary" id="cancel-template">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save Template</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- CSV Format Help Modal -->
+        <div id="csv-help-modal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>📋 CSV Import Format</h3>
+                    <button class="modal-close" id="close-csv-help">&times;</button>
+                </div>
+                <div style="padding: 20px;">
+                    <h4>Required Format:</h4>
+                    <p>Your CSV file must have these columns:</p>
+                    <ul>
+                        <li><strong>name</strong> - Contact name (required)</li>
+                        <li><strong>phone</strong> - Phone number with country code (required)</li>
+                    </ul>
+                    
+                    <h4>Example CSV:</h4>
+                    <pre style="background: #f5f5f5; padding: 15px; border-radius: 8px; overflow-x: auto;">name,phone
+John Doe,+12345678901
+Jane Smith,+12345678902
+Carlos Rodriguez,+12345678903</pre>
+                    
+                    <h4>Important Notes:</h4>
+                    <ul>
+                        <li>✅ Phone numbers must include country code (e.g., +1 for USA)</li>
+                        <li>✅ First row must be headers: name,phone</li>
+                        <li>✅ Duplicate numbers will be skipped automatically</li>
+                        <li>⚠️ Alternative column names accepted: nombre, telefono, numero</li>
+                    </ul>
+
+                    <div class="modal-actions">
+                        <button class="btn btn-primary" id="btn-download-example">📥 Download Example CSV</button>
+                        <button class="btn btn-success" id="btn-proceed-import">📤 Import CSV File</button>
+                        <button class="btn btn-secondary" id="close-csv-help-btn">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <footer class="bg-white dark:bg-dark-card border-t border-gray-200 dark:border-dark-border mt-8 py-4">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-sm text-gray-500 dark:text-gray-400">
+                <p>Version 1.0.0 - WhatsApp Automation Tool</p>
+            </div>
+        </footer>
+    </div>
+    
+    <script src="js/theme.js"></script>
+    <script src="js/i18n.js"></script>
+    <script src="js/ui.js"></script>
+    <script>
+        // Language toggle function
+        function toggleLanguage() {
+            const currentLang = i18n.getCurrentLanguage();
+            const newLang = currentLang === 'en' ? 'es' : 'en';
+            i18n.setLanguage(newLang);
+            document.getElementById('language-text').textContent = newLang.toUpperCase();
+        }
+        
+        // Initialize language text
+        document.addEventListener('DOMContentLoaded', () => {
+            const currentLang = i18n.getCurrentLanguage();
+            document.getElementById('language-text').textContent = currentLang.toUpperCase();
+            i18n.updateUI();
+        });
+    </script>
+</body>
+</html>
