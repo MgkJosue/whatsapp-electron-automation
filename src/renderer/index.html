@@ -107,21 +107,44 @@
                         
                         <!-- Queue Status -->
                         <div id="queue-status" class="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4 mb-6 border border-gray-200 dark:border-gray-700" style="display: none;">
-                            <div class="flex items-center justify-between flex-wrap gap-4">
-                                <div class="flex items-center space-x-4">
-                                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300" data-i18n="msgQueueStatus">Queue Status:</span>
-                                    <span id="queue-state" class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300">Idle</span>
-                                </div>
-                                <div class="text-sm text-gray-600 dark:text-gray-400">
-                                    <span data-i18n="msgInQueue">Messages in queue:</span> <strong id="queue-size" class="text-primary-600 dark:text-primary-400">0</strong>
-                                    <div id="current-contact-info" class="mt-2" style="display: none;">
-                                        <span class="text-gray-500 dark:text-gray-400">Sending to: <strong id="current-contact-name" class="text-gray-900 dark:text-gray-100"></strong></span>
+                            <div class="space-y-4">
+                                <div class="flex items-center justify-between flex-wrap gap-4">
+                                    <div class="flex items-center space-x-4">
+                                        <span class="text-sm font-medium text-gray-700 dark:text-gray-300" data-i18n="msgQueueStatus">Queue Status:</span>
+                                        <span id="queue-state" class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300">Idle</span>
+                                    </div>
+                                    <div class="flex space-x-2">
+                                        <button id="btn-pause-queue" class="px-3 py-1.5 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg text-sm font-medium transition-all" disabled data-i18n="msgPauseQueue">⏸ Pause</button>
+                                        <button id="btn-resume-queue" class="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-all" disabled style="display: none;" data-i18n="msgResumeQueue">▶ Resume</button>
+                                        <button id="btn-stop-queue" class="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition-all" disabled data-i18n="msgStopQueue">⏹ Stop</button>
                                     </div>
                                 </div>
-                                <div class="flex space-x-2">
-                                    <button id="btn-pause-queue" class="px-3 py-1.5 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg text-sm font-medium transition-all" disabled data-i18n="msgPauseQueue">⏸ Pause</button>
-                                    <button id="btn-resume-queue" class="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-all" disabled style="display: none;" data-i18n="msgResumeQueue">▶ Resume</button>
-                                    <button id="btn-stop-queue" class="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition-all" disabled data-i18n="msgStopQueue">⏹ Stop</button>
+
+                                <!-- Queue Progress Bar -->
+                                <div id="queue-progress-container" style="display: none;">
+                                    <div class="flex items-center justify-between text-sm mb-2">
+                                        <span class="text-gray-600 dark:text-gray-400">
+                                            <span data-i18n="msgProgress">Progress:</span>
+                                            <strong id="queue-processed" class="text-gray-900 dark:text-gray-100">0</strong> / 
+                                            <strong id="queue-total" class="text-gray-900 dark:text-gray-100">0</strong>
+                                            (<span id="queue-percentage" class="text-primary-600 dark:text-primary-400">0%</span>)
+                                        </span>
+                                        <div class="flex gap-4 text-xs">
+                                            <span class="text-green-600 dark:text-green-400">✅ <strong id="queue-success">0</strong></span>
+                                            <span class="text-red-600 dark:text-red-400">❌ <strong id="queue-failed">0</strong></span>
+                                        </div>
+                                    </div>
+                                    <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
+                                        <div id="queue-progress-bar" class="bg-gradient-to-r from-indigo-500 to-purple-500 h-full rounded-full transition-all duration-500 ease-out" style="width: 0%"></div>
+                                    </div>
+                                    <div id="current-contact-info" class="mt-3 text-sm text-gray-600 dark:text-gray-400" style="display: none;">
+                                        <span>📤 Sending to: <strong id="current-contact-name" class="text-gray-900 dark:text-gray-100"></strong></span>
+                                    </div>
+                                </div>
+
+                                <!-- Queue Stats Summary -->
+                                <div id="queue-stats" class="text-sm text-gray-600 dark:text-gray-400">
+                                    <span data-i18n="msgInQueue">Messages in queue:</span> <strong id="queue-size" class="text-primary-600 dark:text-primary-400">0</strong>
                                 </div>
                             </div>
                         </div>
@@ -204,6 +227,10 @@
                                 <span class="mr-2">📥</span>
                                 <span data-i18n="cntImportCSV">Import CSV</span>
                             </button>
+                            <button id="btn-import-google-contacts" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-all">
+                                <span class="mr-2">🌐</span>
+                                <span data-i18n="cntImportGoogle">Import from Google</span>
+                            </button>
                             <button id="btn-export-contacts" class="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-all">
                                 <span class="mr-2">📤</span>
                                 <span data-i18n="cntExportCSV">Export CSV</span>
@@ -228,6 +255,39 @@
 
                         <div id="contacts-list" class="space-y-3">
                             <p class="text-center text-gray-500 dark:text-gray-400 py-12" data-i18n="cntEmpty">No contacts yet. Add your first contact!</p>
+                        </div>
+
+                        <!-- Pagination Controls -->
+                        <div id="contacts-pagination" class="mt-6 flex items-center justify-between border-t border-gray-200 dark:border-gray-700 pt-4" style="display: none;">
+                            <div class="flex items-center gap-2">
+                                <span class="text-sm text-gray-600 dark:text-gray-400">
+                                    <span data-i18n="cntShowing">Showing</span>
+                                    <span id="contacts-showing-from" class="font-semibold">1</span>-<span id="contacts-showing-to" class="font-semibold">50</span>
+                                    <span data-i18n="cntOf">of</span>
+                                    <span id="contacts-total" class="font-semibold">0</span>
+                                    <span data-i18n="cntContacts">contacts</span>
+                                </span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button id="contacts-btn-first-page" class="px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all" disabled>
+                                    <span>⏮️</span>
+                                </button>
+                                <button id="contacts-btn-prev-page" class="px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all" disabled>
+                                    <span>← </span><span data-i18n="cntPrevious">Previous</span>
+                                </button>
+                                <span class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                                    <span data-i18n="cntPage">Page</span>
+                                    <span id="contacts-current-page" class="font-bold">1</span>
+                                    <span data-i18n="cntOf">of</span>
+                                    <span id="contacts-total-pages" class="font-bold">1</span>
+                                </span>
+                                <button id="contacts-btn-next-page" class="px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all" disabled>
+                                    <span data-i18n="cntNext">Next</span><span> →</span>
+                                </button>
+                                <button id="contacts-btn-last-page" class="px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all" disabled>
+                                    <span>⏭️</span>
+                                </button>
+                            </div>
                         </div>
                         
                         <div id="contacts-status" class="mt-4 p-4 rounded-lg" style="display: none;"></div>

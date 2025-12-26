@@ -4,10 +4,10 @@ const messageRepository = require('../persistence/repositories/messageRepository
 const userRepository = require('../persistence/repositories/userRepository');
 const configRepository = require('../persistence/repositories/configRepository');
 const phoneValidator = require('../validators/phoneValidator');
-const messageQueue = require('../services/messageQueue.service');
+const persistentQueue = require('../services/persistentMessageQueue.service');
 
 function setupMessageHandlers(mainWindow) {
-  messageQueue.onStatusChange((status) => {
+  persistentQueue.setStatusCallback((status) => {
     mainWindow.webContents.send('message-queue:status', status);
   });
 
@@ -101,7 +101,7 @@ function setupMessageHandlers(mainWindow) {
         contactName: contactName || validation.formatted
       };
 
-      await messageQueue.addToQueue(queueData);
+      await persistentQueue.addToQueue(queueData);
 
       return {
         success: true,
@@ -151,7 +151,7 @@ function setupMessageHandlers(mainWindow) {
         mediaPath: null
       };
 
-      await messageQueue.addToQueue(queueData);
+      await persistentQueue.addToQueue(queueData);
 
       event.reply('whatsapp:send-message-response', {
         success: true,
@@ -206,7 +206,7 @@ function setupMessageHandlers(mainWindow) {
         mediaPath
       };
 
-      await messageQueue.addToQueue(queueData);
+      await persistentQueue.addToQueue(queueData);
 
       event.reply('whatsapp:send-message-response', {
         success: true,
@@ -248,23 +248,22 @@ function setupMessageHandlers(mainWindow) {
   });
 
   ipcMain.on('message-queue:pause', (event) => {
-    messageQueue.pause();
+    persistentQueue.pause();
     event.reply('message-queue:pause-response', { success: true });
   });
 
   ipcMain.on('message-queue:resume', (event) => {
-    messageQueue.resume();
+    persistentQueue.resume();
     event.reply('message-queue:resume-response', { success: true });
   });
 
   ipcMain.on('message-queue:stop', (event) => {
-    messageQueue.stop();
+    persistentQueue.stop();
     event.reply('message-queue:stop-response', { success: true });
   });
 
-  ipcMain.on('message-queue:get-status', (event) => {
-    const status = messageQueue.getStatus();
-    event.reply('message-queue:status-response', status);
+  ipcMain.handle('message-queue:get-status', async (event) => {
+    return persistentQueue.getStatus();
   });
 
   ipcMain.on('config:save-delay', (event, data) => {

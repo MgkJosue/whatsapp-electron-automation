@@ -108,6 +108,38 @@ class Database {
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
       );
 
+      CREATE TABLE IF NOT EXISTS message_queue (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        contact_id TEXT,
+        phone_number TEXT NOT NULL,
+        contact_name TEXT,
+        message_content TEXT NOT NULL,
+        media_path TEXT,
+        status TEXT NOT NULL DEFAULT 'PENDING',
+        error_message TEXT,
+        retry_count INTEGER NOT NULL DEFAULT 0,
+        position INTEGER NOT NULL,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        processed_at TEXT,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (contact_id) REFERENCES contacts(id) ON DELETE SET NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS queue_state (
+        id TEXT PRIMARY KEY,
+        user_id TEXT UNIQUE NOT NULL,
+        is_paused INTEGER NOT NULL DEFAULT 0,
+        is_processing INTEGER NOT NULL DEFAULT 0,
+        current_position INTEGER NOT NULL DEFAULT 0,
+        total_messages INTEGER NOT NULL DEFAULT 0,
+        processed_count INTEGER NOT NULL DEFAULT 0,
+        success_count INTEGER NOT NULL DEFAULT 0,
+        failed_count INTEGER NOT NULL DEFAULT 0,
+        last_updated TEXT NOT NULL DEFAULT (datetime('now')),
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      );
+
       CREATE UNIQUE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id);
       CREATE INDEX IF NOT EXISTS idx_sessions_authenticated ON sessions(is_authenticated);
       CREATE UNIQUE INDEX IF NOT EXISTS idx_configurations_user_id ON configurations(user_id);
@@ -123,6 +155,10 @@ class Database {
       CREATE INDEX IF NOT EXISTS idx_messages_phone ON messages(phone_number);
       CREATE INDEX IF NOT EXISTS idx_messages_created ON messages(created_at);
       CREATE INDEX IF NOT EXISTS idx_messages_user_status ON messages(user_id, status);
+      CREATE INDEX IF NOT EXISTS idx_queue_user_id ON message_queue(user_id);
+      CREATE INDEX IF NOT EXISTS idx_queue_status ON message_queue(status);
+      CREATE INDEX IF NOT EXISTS idx_queue_position ON message_queue(position);
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_queue_state_user_id ON queue_state(user_id);
     `;
 
     this.db.run(schema);

@@ -4,6 +4,7 @@ const userRepository = require('../persistence/repositories/userRepository');
 const fs = require('fs');
 const path = require('path');
 const Papa = require('papaparse');
+const GoogleContactsParser = require('../utils/googleContactsParser');
 
 function setupContactHandlers(mainWindow) {
   ipcMain.handle('contacts:get-all', async () => {
@@ -17,6 +18,21 @@ function setupContactHandlers(mainWindow) {
       return { success: true, contacts };
     } catch (error) {
       console.error('Error getting contacts:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('contacts:get-paginated', async (event, { page = 1, limit = 50 }) => {
+    try {
+      const user = userRepository.getFirst();
+      if (!user) {
+        return { success: false, error: 'User not found' };
+      }
+
+      const result = contactRepository.findByUserIdPaginated(user.id, page, limit);
+      return { success: true, ...result };
+    } catch (error) {
+      console.error('Error getting paginated contacts:', error);
       return { success: false, error: error.message };
     }
   });
@@ -84,6 +100,21 @@ function setupContactHandlers(mainWindow) {
       return { success: true, contacts };
     } catch (error) {
       console.error('Error searching contacts:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('contacts:search-paginated', async (event, { searchTerm, page = 1, limit = 50 }) => {
+    try {
+      const user = userRepository.getFirst();
+      if (!user) {
+        return { success: false, error: 'User not found' };
+      }
+
+      const result = contactRepository.searchPaginated(user.id, searchTerm, page, limit);
+      return { success: true, ...result };
+    } catch (error) {
+      console.error('Error searching paginated contacts:', error);
       return { success: false, error: error.message };
     }
   });
@@ -249,6 +280,63 @@ function setupContactHandlers(mainWindow) {
       };
     } catch (error) {
       console.error('Error exporting CSV:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('contacts:import-google-csv', async (event, { countryCode = '+593' }) => {
+    try {
+      const result = await dialog.showOpenDialog(mainWindow, {
+        title: 'Importar Contactos de Google',
+        filters: [
+          { name: 'CSV Files', extensions: ['csv'] },
+          { name: 'All Files', extensions: ['*'] }
+        ],
+        properties: ['openFile']
+      });
+
+      if (result.canceled || !result.filePaths.length) {
+        return { success: false, error: 'No se seleccionó ningún archivo' };
+      }
+
+      const filePath = result.filePaths[0];
+      const fileContent = fs.readFileSync(filePath, 'utf-8');
+
+      const parser = new GoogleContactsParser(countryCode);
+      const parseResult = await parser.parseCSV(fileContent);
+
+      if (!parseResult.success) {
+        return { success: false, error: 'Error al procesar el archivo CSV' };
+      }
+
+      const user = userRepository.getFirst();
+      if (!user) {
+        return { success: false, error: 'Usuario no encontrado' };
+      }
+
+      const contactsToImport = parseResult.contacts.map(contact => ({
+        name: contact.name,
+        phoneNumber: contact.phone,
+        formattedNumber: contact.phone.replace(/\D/g, '')
+      }));
+
+      const importResults = contactRepository.bulkCreate(user.id, contactsToImport);
+
+      const report = parser.generateReport(parseResult);
+
+      return {
+        success: true,
+        imported: importResults.success.length,
+        duplicates: importResults.duplicates.length + parseResult.duplicatesRemoved,
+        errors: importResults.errors.length + parseResult.errors.length,
+        report: report,
+        details: {
+          importResults: importResults,
+          parseResult: parseResult
+        }
+      };
+    } catch (error) {
+      console.error('Error importing Google CSV:', error);
       return { success: false, error: error.message };
     }
   });

@@ -23,6 +23,27 @@ class ContactRepository {
     return db.all(sql, [userId]);
   }
 
+  findByUserIdPaginated(userId, page = 1, limit = 50) {
+    const offset = (page - 1) * limit;
+    const sql = 'SELECT * FROM contacts WHERE user_id = ? ORDER BY name ASC LIMIT ? OFFSET ?';
+    const contacts = db.all(sql, [userId, limit, offset]);
+    
+    const countSql = 'SELECT COUNT(*) as total FROM contacts WHERE user_id = ?';
+    const countResult = db.get(countSql, [userId]);
+    
+    return {
+      contacts: contacts,
+      pagination: {
+        page: page,
+        limit: limit,
+        total: countResult.total,
+        totalPages: Math.ceil(countResult.total / limit),
+        hasNext: page < Math.ceil(countResult.total / limit),
+        hasPrev: page > 1
+      }
+    };
+  }
+
   findByPhoneNumber(userId, phoneNumber) {
     const sql = 'SELECT * FROM contacts WHERE user_id = ? AND phone_number = ?';
     return db.get(sql, [userId, phoneNumber]);
@@ -36,6 +57,37 @@ class ContactRepository {
     `;
     const term = `%${searchTerm}%`;
     return db.all(sql, [userId, term, term]);
+  }
+
+  searchPaginated(userId, searchTerm, page = 1, limit = 50) {
+    const offset = (page - 1) * limit;
+    const term = `%${searchTerm}%`;
+    
+    const sql = `
+      SELECT * FROM contacts 
+      WHERE user_id = ? AND (name LIKE ? OR phone_number LIKE ?)
+      ORDER BY name ASC
+      LIMIT ? OFFSET ?
+    `;
+    const contacts = db.all(sql, [userId, term, term, limit, offset]);
+    
+    const countSql = `
+      SELECT COUNT(*) as total FROM contacts 
+      WHERE user_id = ? AND (name LIKE ? OR phone_number LIKE ?)
+    `;
+    const countResult = db.get(countSql, [userId, term, term]);
+    
+    return {
+      contacts: contacts,
+      pagination: {
+        page: page,
+        limit: limit,
+        total: countResult.total,
+        totalPages: Math.ceil(countResult.total / limit),
+        hasNext: page < Math.ceil(countResult.total / limit),
+        hasPrev: page > 1
+      }
+    };
   }
 
   update(id, name, phoneNumber, formattedNumber) {

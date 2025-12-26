@@ -7,6 +7,7 @@ const { setupTemplateHandlers } = require('./ipc/templateHandlers');
 const { setupReportHandlers } = require('./ipc/reportHandlers');
 const { setupDataManagementHandlers } = require('./ipc/dataManagementHandlers');
 const whatsappService = require('./services/whatsapp.service');
+const persistentQueueService = require('./services/persistentMessageQueue.service');
 
 let mainWindow;
 
@@ -14,6 +15,11 @@ async function initializeApp() {
   try {
     await db.initialize();
     console.log('Database initialized successfully');
+    
+    // Restore queue from previous session if exists
+    setTimeout(() => {
+      persistentQueueService.restoreQueue();
+    }, 3000); // Wait 3 seconds for WhatsApp to connect
   } catch (error) {
     console.error('Failed to initialize database:', error);
   }

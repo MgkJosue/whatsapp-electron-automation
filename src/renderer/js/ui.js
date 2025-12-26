@@ -4,6 +4,9 @@ console.log('WhatsApp Desktop Automation - UI Loaded');
 
 const UI = {
   elements: {},
+  currentContactsPage: 1,
+  contactsPerPage: 50,
+  currentSearchTerm: '',
   
   init() {
     this.cacheElements();
@@ -44,6 +47,7 @@ const UI = {
       testCount: document.getElementById('test-count'),
       btnAddContact: document.getElementById('btn-add-contact'),
       btnImportContacts: document.getElementById('btn-import-contacts'),
+      btnImportGoogleContacts: document.getElementById('btn-import-google-contacts'),
       btnExportContacts: document.getElementById('btn-export-contacts'),
       contactSearch: document.getElementById('contact-search'),
       contactsList: document.getElementById('contacts-list'),
@@ -69,6 +73,23 @@ const UI = {
       currentContactName: document.getElementById('current-contact-name'),
       messagingStatus: document.getElementById('messaging-status'),
       contactsStatus: document.getElementById('contacts-status'),
+      contactsPagination: document.getElementById('contacts-pagination'),
+      contactsBtnFirstPage: document.getElementById('contacts-btn-first-page'),
+      contactsBtnPrevPage: document.getElementById('contacts-btn-prev-page'),
+      contactsBtnNextPage: document.getElementById('contacts-btn-next-page'),
+      contactsBtnLastPage: document.getElementById('contacts-btn-last-page'),
+      contactsCurrentPage: document.getElementById('contacts-current-page'),
+      contactsTotalPages: document.getElementById('contacts-total-pages'),
+      contactsShowingFrom: document.getElementById('contacts-showing-from'),
+      contactsShowingTo: document.getElementById('contacts-showing-to'),
+      contactsTotal: document.getElementById('contacts-total'),
+      queueProgressContainer: document.getElementById('queue-progress-container'),
+      queueProgressBar: document.getElementById('queue-progress-bar'),
+      queueProcessed: document.getElementById('queue-processed'),
+      queueTotal: document.getElementById('queue-total'),
+      queuePercentage: document.getElementById('queue-percentage'),
+      queueSuccess: document.getElementById('queue-success'),
+      queueFailed: document.getElementById('queue-failed'),
       settingsStatus: document.getElementById('settings-status'),
       templatesStatus: document.getElementById('templates-status'),
       btnAddTemplate: document.getElementById('btn-add-template'),
@@ -158,6 +179,7 @@ const UI = {
     
     this.elements.btnAddContact?.addEventListener('click', () => this.openContactModal());
     this.elements.btnImportContacts?.addEventListener('click', () => this.showCsvHelpModal());
+    this.elements.btnImportGoogleContacts?.addEventListener('click', () => this.importGoogleContacts());
     this.elements.btnExportContacts?.addEventListener('click', () => this.exportContacts());
     this.elements.btnDeleteSelected?.addEventListener('click', () => this.deleteSelectedContacts());
     this.elements.btnDeleteAll?.addEventListener('click', () => this.deleteAllContacts());
@@ -172,6 +194,12 @@ const UI = {
     this.elements.closeCsvHelpBtn?.addEventListener('click', () => this.closeCsvHelpModal());
     this.elements.btnDownloadExample?.addEventListener('click', () => this.downloadExampleCsv());
     this.elements.btnProceedImport?.addEventListener('click', () => this.importContacts());
+    
+    // Pagination event listeners
+    this.elements.contactsBtnFirstPage?.addEventListener('click', () => this.goToPage(1));
+    this.elements.contactsBtnPrevPage?.addEventListener('click', () => this.goToPage(this.currentContactsPage - 1));
+    this.elements.contactsBtnNextPage?.addEventListener('click', () => this.goToPage(this.currentContactsPage + 1));
+    this.elements.contactsBtnLastPage?.addEventListener('click', () => this.goToLastPage());
     
     this.elements.btnAddTemplate?.addEventListener('click', () => this.openTemplateModal());
     this.elements.closeTemplateModal?.addEventListener('click', () => this.closeTemplateModal());
@@ -511,18 +539,36 @@ const UI = {
   },
 
   updateQueueStatus(status) {
-    const { type, queueSize, isProcessing, isPaused, messageId, contactName, phoneNumber } = status;
+    const { type, queueSize, isProcessing, isPaused, contactName, phoneNumber, stats } = status;
 
     console.log('Queue status update:', status);
 
-    if (type === 'queued' || type === 'sending' || type === 'sent' || type === 'error' || type === 'processing') {
+    if (type === 'queued' || type === 'sending' || type === 'processing' || type === 'bulk_queued') {
       this.elements.queueStatus.style.display = 'block';
     }
 
+    // Update queue size
     if (queueSize !== undefined) {
       this.elements.queueSize.textContent = queueSize;
     }
 
+    // Update progress bar and stats
+    if (stats) {
+      this.elements.queueProgressContainer.style.display = 'block';
+      
+      const processed = stats.processed || 0;
+      const total = stats.total || 0;
+      const percentage = total > 0 ? Math.round((processed / total) * 100) : 0;
+      
+      this.elements.queueProcessed.textContent = processed;
+      this.elements.queueTotal.textContent = total;
+      this.elements.queuePercentage.textContent = percentage + '%';
+      this.elements.queueSuccess.textContent = stats.successCount || 0;
+      this.elements.queueFailed.textContent = stats.failedCount || 0;
+      this.elements.queueProgressBar.style.width = percentage + '%';
+    }
+
+    // Show current contact being processed
     if (type === 'sending' && contactName) {
       if (this.elements.currentContactInfo && this.elements.currentContactName) {
         this.elements.currentContactInfo.style.display = 'block';
@@ -530,44 +576,89 @@ const UI = {
       }
     }
 
-    if (type === 'completed' || type === 'idle') {
+    // Handle queue completion
+    if (type === 'completed') {
       if (this.elements.currentContactInfo) {
         this.elements.currentContactInfo.style.display = 'none';
       }
+      
+      this.showMessageStatus(
+        `✅ Queue completed! Success: ${stats?.successCount || 0}, Failed: ${stats?.failedCount || 0}`,
+        'success'
+      );
+      
+      // Hide queue UI after 5 seconds
       setTimeout(() => {
         this.elements.queueStatus.style.display = 'none';
-      }, 3000);
+        this.elements.queueProgressContainer.style.display = 'none';
+        this.elements.queueSize.textContent = '0';
+      }, 5000);
     }
 
+    // Handle restored queue
+    if (type === 'restored_paused') {
+      this.elements.queueStatus.style.display = 'block';
+      this.elements.queueProgressContainer.style.display = 'block';
+      
+      // Set paused state UI
+      this.elements.queueState.textContent = '⏸️ Paused';
+      this.elements.queueState.className = 'inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300';
+      this.elements.btnPauseQueue.style.display = 'none';
+      this.elements.btnResumeQueue.style.display = 'inline-block';
+      this.elements.btnResumeQueue.disabled = false;
+      this.elements.btnStopQueue.style.display = 'inline-block';
+      this.elements.btnStopQueue.disabled = false;
+      
+      this.showMessageStatus(
+        `⏸️ Queue restored with ${queueSize} pending messages. Click Resume to continue.`,
+        'info'
+      );
+    }
+
+    if (type === 'restored') {
+      this.elements.queueStatus.style.display = 'block';
+      this.elements.queueProgressContainer.style.display = 'block';
+      
+      this.showMessageStatus(
+        `🔄 Queue restored with ${queueSize} pending messages. Processing will continue automatically.`,
+        'info'
+      );
+    }
+
+    // Update button states
     if (isProcessing !== undefined || isPaused !== undefined) {
       if (isPaused) {
-        this.elements.queueState.textContent = 'Paused';
-        this.elements.queueState.className = 'badge paused';
+        this.elements.queueState.textContent = '⏸️ Paused';
+        this.elements.queueState.className = 'inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300';
         this.elements.btnPauseQueue.style.display = 'none';
         this.elements.btnResumeQueue.style.display = 'inline-block';
         this.elements.btnResumeQueue.disabled = false;
+        this.elements.btnStopQueue.style.display = 'inline-block';
         this.elements.btnStopQueue.disabled = false;
       } else if (isProcessing) {
-        this.elements.queueState.textContent = 'Processing';
-        this.elements.queueState.className = 'badge processing';
+        this.elements.queueState.textContent = '▶️ Processing';
+        this.elements.queueState.className = 'inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300';
         this.elements.btnPauseQueue.style.display = 'inline-block';
         this.elements.btnPauseQueue.disabled = false;
         this.elements.btnResumeQueue.style.display = 'none';
+        this.elements.btnStopQueue.style.display = 'inline-block';
         this.elements.btnStopQueue.disabled = false;
       } else {
-        this.elements.queueState.textContent = 'Idle';
-        this.elements.queueState.className = 'badge idle';
-        this.elements.btnPauseQueue.disabled = true;
+        this.elements.queueState.textContent = '⏹️ Idle';
+        this.elements.queueState.className = 'inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300';
+        this.elements.btnPauseQueue.style.display = 'none';
         this.elements.btnResumeQueue.style.display = 'none';
-        this.elements.btnStopQueue.disabled = true;
+        this.elements.btnStopQueue.style.display = 'none';
       }
     }
 
-    if (type === 'stopped' || type === 'idle') {
+    // Handle stopped queue
+    if (type === 'stopped') {
       this.elements.queueStatus.style.display = 'none';
+      this.elements.queueProgressContainer.style.display = 'none';
       this.elements.queueSize.textContent = '0';
-      this.elements.queueState.textContent = 'Idle';
-      this.elements.queueState.className = 'badge idle';
+      this.elements.queueState.textContent = '⏹️ Idle';
+      this.elements.queueState.className = 'inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300';
     }
   },
 
@@ -576,15 +667,62 @@ const UI = {
 
   async loadContacts() {
     try {
-      const response = await ipcRenderer.invoke('contacts:get-all');
+      const response = await ipcRenderer.invoke('contacts:get-paginated', {
+        page: this.currentContactsPage,
+        limit: this.contactsPerPage
+      });
+      
       if (response.success) {
         this.renderContacts(response.contacts);
+        this.updatePaginationControls(response.pagination);
       } else {
         this.showContactsStatus('Error loading contacts: ' + response.error, 'error');
       }
     } catch (error) {
       console.error('Error loading contacts:', error);
       this.showContactsStatus('Error loading contacts', 'error');
+    }
+  },
+
+  updatePaginationControls(pagination) {
+    if (!pagination || pagination.total === 0) {
+      this.elements.contactsPagination.style.display = 'none';
+      return;
+    }
+
+    this.elements.contactsPagination.style.display = 'flex';
+    
+    const from = (pagination.page - 1) * pagination.limit + 1;
+    const to = Math.min(pagination.page * pagination.limit, pagination.total);
+    
+    this.elements.contactsShowingFrom.textContent = from;
+    this.elements.contactsShowingTo.textContent = to;
+    this.elements.contactsTotal.textContent = pagination.total;
+    this.elements.contactsCurrentPage.textContent = pagination.page;
+    this.elements.contactsTotalPages.textContent = pagination.totalPages;
+    
+    this.elements.contactsBtnFirstPage.disabled = !pagination.hasPrev;
+    this.elements.contactsBtnPrevPage.disabled = !pagination.hasPrev;
+    this.elements.contactsBtnNextPage.disabled = !pagination.hasNext;
+    this.elements.contactsBtnLastPage.disabled = !pagination.hasNext;
+    
+    this.lastTotalPages = pagination.totalPages;
+  },
+
+  async goToPage(page) {
+    if (page < 1) return;
+    this.currentContactsPage = page;
+    
+    if (this.currentSearchTerm) {
+      await this.searchContactsPaginated(this.currentSearchTerm);
+    } else {
+      await this.loadContacts();
+    }
+  },
+
+  async goToLastPage() {
+    if (this.lastTotalPages) {
+      await this.goToPage(this.lastTotalPages);
     }
   },
 
@@ -717,21 +855,34 @@ const UI = {
   },
 
   async searchContacts(searchTerm) {
-    if (!searchTerm || searchTerm.trim() === '') {
+    this.currentSearchTerm = searchTerm.trim();
+    this.currentContactsPage = 1;
+    
+    if (!this.currentSearchTerm) {
       await this.loadContacts();
       return;
     }
 
+    await this.searchContactsPaginated(this.currentSearchTerm);
+  },
+
+  async searchContactsPaginated(searchTerm) {
     try {
-      const response = await ipcRenderer.invoke('contacts:search', { searchTerm: searchTerm.trim() });
+      const response = await ipcRenderer.invoke('contacts:search-paginated', { 
+        searchTerm: searchTerm,
+        page: this.currentContactsPage,
+        limit: this.contactsPerPage
+      });
+      
       if (response.success) {
         this.renderContacts(response.contacts);
+        this.updatePaginationControls(response.pagination);
       } else {
-        this.showMessageStatus('Error searching contacts: ' + response.error, 'error');
+        this.showContactsStatus('Error searching contacts: ' + response.error, 'error');
       }
     } catch (error) {
       console.error('Error searching contacts:', error);
-      this.showMessageStatus('Error searching contacts', 'error');
+      this.showContactsStatus('Error searching contacts', 'error');
     }
   },
 
@@ -816,6 +967,36 @@ const UI = {
     } catch (error) {
       console.error('Error importing contacts:', error);
       this.showContactsStatus('Error importing contacts', 'error');
+    }
+  },
+
+  async importGoogleContacts() {
+    try {
+      this.showContactsStatus('Abriendo archivo de Google Contacts...', 'info');
+      
+      const response = await ipcRenderer.invoke('contacts:import-google-csv', { 
+        countryCode: '+593' 
+      });
+      
+      if (response.success) {
+        const message = `✅ Importación de Google Contacts completada!\n\n` +
+          `📥 Contactos importados: ${response.imported}\n` +
+          `🔄 Duplicados eliminados: ${response.duplicates}\n` +
+          `❌ Errores: ${response.errors}\n\n` +
+          `${response.report.summary}`;
+        
+        this.showContactsStatus(message, 'success');
+        await this.loadContacts();
+        
+        if (response.errors > 0 && response.details.parseResult.errors.length > 0) {
+          console.warn('Errores durante la importación:', response.details.parseResult.errors);
+        }
+      } else {
+        this.showContactsStatus('Error al importar: ' + response.error, 'error');
+      }
+    } catch (error) {
+      console.error('Error importing Google contacts:', error);
+      this.showContactsStatus('Error al importar contactos de Google', 'error');
     }
   },
 
@@ -906,6 +1087,14 @@ const UI = {
 
   async sendToAllContacts() {
     try {
+      // Check if there's already a queue processing or paused
+      const queueStatus = await ipcRenderer.invoke('message-queue:get-status');
+      if (queueStatus && (queueStatus.isProcessing || queueStatus.isPaused)) {
+        const action = queueStatus.isPaused ? 'paused' : 'processing';
+        this.showMessagingStatus(`⚠️ Queue is already ${action}. Use Resume/Stop buttons to control it.`, 'warning');
+        return;
+      }
+
       const response = await ipcRenderer.invoke('contacts:get-all');
       if (!response.success || !response.contacts || response.contacts.length === 0) {
         this.showMessagingStatus('No contacts available to send messages', 'error');
@@ -950,6 +1139,14 @@ const UI = {
 
   async sendToSelectedContacts() {
     try {
+      // Check if there's already a queue processing or paused
+      const queueStatus = await ipcRenderer.invoke('message-queue:get-status');
+      if (queueStatus && (queueStatus.isProcessing || queueStatus.isPaused)) {
+        const action = queueStatus.isPaused ? 'paused' : 'processing';
+        this.showMessagingStatus(`⚠️ Queue is already ${action}. Use Resume/Stop buttons to control it.`, 'warning');
+        return;
+      }
+
       const checkboxes = document.querySelectorAll('.contact-checkbox:checked');
       if (checkboxes.length === 0) {
         this.showMessagingStatus('No contacts selected', 'error');
