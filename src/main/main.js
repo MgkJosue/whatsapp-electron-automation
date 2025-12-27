@@ -16,12 +16,23 @@ async function initializeApp() {
     await db.initialize();
     console.log('Database initialized successfully');
     
+    // Ensure user exists
+    const userRepository = require('./persistence/repositories/userRepository');
+    const user = userRepository.getOrCreate();
+    console.log('User initialized:', user ? 'OK' : 'FAILED');
+    
+    if (!user) {
+      console.error('CRITICAL: Failed to create user. Please delete the database file and restart.');
+      console.error('Database location:', db.dbPath);
+    }
+    
     // Restore queue from previous session if exists
     setTimeout(() => {
       persistentQueueService.restoreQueue();
     }, 3000); // Wait 3 seconds for WhatsApp to connect
   } catch (error) {
     console.error('Failed to initialize database:', error);
+    console.error('Please try deleting the database file at:', db.dbPath);
   }
 }
 
