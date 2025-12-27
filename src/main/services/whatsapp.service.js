@@ -25,10 +25,14 @@ class WhatsAppService {
     try {
       const authPath = path.resolve(sessionPath || './.wwebjs_auth');
       
+      console.log('Auth path:', authPath);
+      
       if (!fs.existsSync(authPath)) {
+        console.log('Creating auth directory...');
         fs.mkdirSync(authPath, { recursive: true });
       }
 
+      console.log('Creating WhatsApp client...');
       this.client = new Client({
         authStrategy: new LocalAuth({
           clientId: 'whatsapp-automation',
@@ -48,27 +52,53 @@ class WhatsAppService {
         }
       });
 
+      console.log('Setting up event handlers...');
       this.setupEventHandlers();
       
       console.log('WhatsApp client initialized, starting authentication...');
+      console.log('Waiting for QR code... (this may take 30-60 seconds)');
+      
+      // Add timeout warning
+      setTimeout(() => {
+        if (!this.isReady && !this.isAuthenticating) {
+          console.log('⚠️ QR code not received yet. This could mean:');
+          console.log('   1. Chromium is still downloading (first time only)');
+          console.log('   2. Firewall/Antivirus is blocking the connection');
+          console.log('   3. Network issues preventing WhatsApp Web connection');
+          console.log('   Please wait or check your firewall settings...');
+        }
+      }, 30000);
+      
       await this.client.initialize();
 
     } catch (error) {
       console.error('Error initializing WhatsApp client:', error);
+      console.error('Stack trace:', error.stack);
       throw error;
     }
   }
 
   setupEventHandlers() {
+    console.log('📱 Registering WhatsApp event handlers...');
+    
     this.client.on('qr', (qr) => {
-      console.log('QR Code received');
+      console.log('✅ QR Code received! Generating QR in terminal...');
       this.isAuthenticating = true;
       
-      qrcode.generate(qr, { small: true });
+      try {
+        qrcode.generate(qr, { small: true });
+        console.log('👆 Scan the QR code above with your WhatsApp mobile app');
+      } catch (error) {
+        console.error('Error generating QR code in terminal:', error);
+      }
       
       if (this.qrCallback) {
         this.qrCallback(qr);
       }
+    });
+    
+    this.client.on('loading_screen', (percent, message) => {
+      console.log('Loading WhatsApp Web:', percent + '%', message);
     });
 
     this.client.on('ready', async () => {
