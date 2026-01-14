@@ -187,7 +187,7 @@ class WhatsAppService {
       const formattedNumber = this.formatPhoneNumber(phoneNumber);
       const chatId = `${formattedNumber}@c.us`;
       
-      await this.client.sendMessage(chatId, message);
+      await this.client.sendMessage(chatId, message, { sendSeen: false });
       
       console.log(`Message sent to ${phoneNumber}: ${message}`);
       return { success: true, phoneNumber, message };
@@ -238,32 +238,37 @@ class WhatsAppService {
         console.log('⚠️ Sending as document (file too large for media)...');
         await this.client.sendMessage(chatId, media, { 
           caption: message || '',
-          sendMediaAsDocument: true
+          sendMediaAsDocument: true,
+          sendSeen: false
         });
       } else if (isVideo) {
-        console.log('🎥 Sending video as document (whatsapp-web.js limitation)...');
+        console.log('🎥 Sending video as media...');
         await this.client.sendMessage(chatId, media, { 
           caption: message || '',
-          sendMediaAsDocument: true
+          sendMediaAsDocument: false,
+          sendSeen: false
         });
       } else if (isImage) {
         console.log('🖼️ Sending image as media...');
         await this.client.sendMessage(chatId, media, { 
           caption: message || '',
-          sendMediaAsDocument: false
+          sendMediaAsDocument: false,
+          sendSeen: false
         });
       } else if (isAudio) {
         console.log('🎵 Sending audio as media...');
         await this.client.sendMessage(chatId, media, { 
           caption: message || '',
           sendMediaAsDocument: false,
-          sendAudioAsVoice: false
+          sendAudioAsVoice: false,
+          sendSeen: false
         });
       } else {
         console.log('📄 Sending as document...');
         await this.client.sendMessage(chatId, media, { 
           caption: message || '',
-          sendMediaAsDocument: true
+          sendMediaAsDocument: true,
+          sendSeen: false
         });
       }
       
@@ -277,7 +282,8 @@ class WhatsAppService {
       try {
         await this.client.sendMessage(chatId, media, { 
           caption: message || '',
-          sendMediaAsDocument: true
+          sendMediaAsDocument: true,
+          sendSeen: false
         });
         
         console.log(`Message with media sent as document to ${phoneNumber}`);
