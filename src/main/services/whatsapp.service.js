@@ -47,7 +47,7 @@ class WhatsAppService {
               dataPath: authPath
             }),
             puppeteer: {
-              headless: true,
+              headless: false,
               args: [
                 '--no-sandbox',
                 '--disable-setuid-sandbox',
@@ -81,7 +81,8 @@ class WhatsAppService {
       }
     }
     
-    throw new Error(`Failed to initialize WhatsApp after ${maxAttempts} attempts: ${error.message}`);
+    const lastError = error || new Error('Unknown initialization error');
+    throw new Error(`Failed to initialize WhatsApp after ${maxAttempts} attempts: ${lastError.message}`);
   }
 
   async initialize(sessionPath) {
@@ -107,7 +108,7 @@ class WhatsAppService {
           dataPath: authPath
         }),
         puppeteer: {
-          headless: true,
+          headless: false,
           args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
